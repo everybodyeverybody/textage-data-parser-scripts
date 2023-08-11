@@ -4,66 +4,13 @@ import re
 import sys
 import json
 import logging
-from enum import Enum
 from pathlib import Path
 from datetime import datetime
-from dataclasses import dataclass, field
 from typing import List, Callable, Dict, Any, Union
-
 import requests  # type: ignore
+from local_dataclasses import Difficulty, Alphanumeric, SongMetadata
 
 log = logging.getLogger(__name__)
-
-
-class Difficulty(Enum):
-    # There is more complex logic around beginner
-    # difficulties related to the versions they exist
-    # in. We don't expect anyone to use this on beginner
-    # mode stuff.
-    # SP_BEGINNER = 1
-    SP_NORMAL = 2
-    SP_HYPER = 3
-    SP_ANOTHER = 4
-    SP_LEGGENDARIA = 5
-    DP_NORMAL = 7
-    DP_HYPER = 8
-    DP_ANOTHER = 9
-    DP_LEGGENDARIA = 10
-    UNKNOWN = 99
-
-
-def generate_song_metadata_difficulties(
-    sp_normal=0,
-    sp_hyper=0,
-    sp_another=0,
-    sp_leggendaria=0,
-    dp_normal=0,
-    dp_hyper=0,
-    dp_another=0,
-    dp_leggendaria=0,
-) -> Dict[Difficulty, int]:
-    return {
-        Difficulty.SP_NORMAL: sp_normal,
-        Difficulty.SP_HYPER: sp_hyper,
-        Difficulty.SP_ANOTHER: sp_another,
-        Difficulty.SP_LEGGENDARIA: sp_leggendaria,
-        Difficulty.DP_NORMAL: dp_normal,
-        Difficulty.DP_HYPER: dp_hyper,
-        Difficulty.DP_ANOTHER: dp_another,
-        Difficulty.DP_LEGGENDARIA: dp_leggendaria,
-    }
-
-
-@dataclass
-class SongMetadata:
-    textage_id: str
-    title: str
-    artist: str
-    genre: str
-    version_id: int
-    difficulty: Dict[Difficulty, int] = field(
-        default_factory=generate_song_metadata_difficulties
-    )
 
 
 def _download_textage_javascript(javascript_file: str, output_path: Path) -> Path:
@@ -119,6 +66,8 @@ def _convert_javascript_and_write_to_json(
     specialized_parser: Callable,
 ):
     log.info(f"converting {file} to json")
+    open_close_char_mapping = {"{": "}", "[": "]"}
+    start_char = ""
     source_file_name = os.path.basename(file)
     source_file_path = os.path.dirname(file)
     parsed_file = source_file_path / Path(f"parsed_{source_file_name}.json")
@@ -127,13 +76,23 @@ def _convert_javascript_and_write_to_json(
         line_count = 0
         for line in js_file_reader:
             line_count += 1
-            if re.match(block_start_regex, line):
-                parsed_writer.write("{\n")
+            line_match = re.match(block_start_regex, line)
+            if line_match:
+                if not line_match.groups() or len(line_match.groups()) < 1:
+                    raise RuntimeError(
+                        "start_regex needs match '()' for struct char { [ "
+                    )
+                start_char = line_match.groups()[0]
+                start_line_extras = ""
+                if len(line_match.groups()) > 1:
+                    start_line_extras = "".join(line_match.groups()[1:])
+                parsed_writer.write(f"{start_char}\n{start_line_extras}\n")
                 capture_output = True
                 continue
             if capture_output:
                 if re.match(block_end_regex, line):
-                    parsed_writer.write("}")
+                    end_char = open_close_char_mapping[start_char]
+                    parsed_writer.write(end_char)
                     break
                 else:
                     # remove comments
@@ -273,6 +232,55 @@ def get_current_version_songs_not_in_infinitas(
     return sorted(not_in_inf_song_titles)
 
 
+def check_alphanumeric_folder(char: str) -> Alphanumeric:
+    if re.match("[ABCD]", char, re.IGNORECASE):
+        return Alphanumeric.ABCD
+    elif re.match("[EFGH]", char, re.IGNORECASE):
+        return Alphanumeric.EFGH
+    elif re.match("[IJKL]", char, re.IGNORECASE):
+        return Alphanumeric.IJKL
+    elif re.match("[MNOP]", char, re.IGNORECASE):
+        return Alphanumeric.MNOP
+    elif re.match("[QRST]", char, re.IGNORECASE):
+        return Alphanumeric.QRST
+    elif re.match("[UVWXYZ]", char, re.IGNORECASE):
+        return Alphanumeric.UVWXYZ
+    else:
+        return Alphanumeric.OTHERS
+
+
+def get_current_version_song_metadata_not_in_infinitas() -> Dict[str, SongMetadata]:
+    version_data = get_textage_version_data()
+    song_titles = get_textage_song_titles()
+    # notes_and_bpm = get_textage_note_counts_and_bpm()
+    all_difficulties = _read_difficulty(version_data)
+    version_list = get_textage_version_list()
+    current_version_songs = filter_current_version_songs(version_data, song_titles)
+    infinitas_only_songs = filter_infinitas_only_songs(version_data, song_titles)
+    inf_keys = set(list(infinitas_only_songs.keys()))
+    cur_ver_keys = set(list(current_version_songs.keys()))
+    not_in_inf_keys = cur_ver_keys.difference(inf_keys)
+    not_in_inf_song_metadata = {}
+    for textage_id in sorted(not_in_inf_keys):
+        version_id = int(current_version_songs[textage_id][0])
+        title = " ".join(song_titles[textage_id][5:])
+        # substream is last in textage js
+        if version_id == 35:
+            version_id = -1
+        song_metadata = SongMetadata(
+            textage_id=textage_id,
+            title=" ".join(song_titles[textage_id][5:]),
+            artist=song_titles[textage_id][4],
+            genre=song_titles[textage_id][3],
+            version_id=version_id,
+            version=version_list[version_id],
+            difficulty=all_difficulties[textage_id],
+            alphanumeric=check_alphanumeric_folder(title[0]),
+        )
+        not_in_inf_song_metadata[textage_id] = song_metadata
+    return not_in_inf_song_metadata
+
+
 def get_textage_version_data():
     def __convert_version_bitfield_to_json(bitfield: str) -> str:
         key, values = bitfield.split(":", maxsplit=1)
@@ -291,7 +299,7 @@ def get_textage_version_data():
 
     return _check_textage_metadata_files(
         textage_javascript_file="actbl.js",
-        parser_start_regex=r"^\s*actbl={.*$",
+        parser_start_regex=r"^\s*actbl=({).*$",
         parser_end_regex=r"\s*}\s*;\s*",
         parser_callback=__convert_version_bitfield_to_json,
     )
@@ -317,9 +325,24 @@ def get_textage_song_titles():
 
     return _check_textage_metadata_files(
         textage_javascript_file="titletbl.js",
-        parser_start_regex=r"^\s*titletbl={.*$",
+        parser_start_regex=r"^\s*titletbl=({).*$",
         parser_end_regex=r"\s*}\s*;\s*",
         parser_callback=__remove_title_table_html,
+    )
+
+
+def get_textage_version_list() -> Any:
+    def __read_vertbl(line: str) -> Any:
+        line = re.sub(";", "", line)
+        line = re.sub("]$", "", line)
+        line = re.sub("vertbl\[35\]=", ",", line)
+        return line
+
+    return _check_textage_metadata_files(
+        textage_javascript_file="scrlist.js",
+        parser_start_regex=r"^vertbl\s*=\s*(\[)(.*)$",
+        parser_end_regex=r"^\s*$",
+        parser_callback=__read_vertbl,
     )
 
 
@@ -330,7 +353,7 @@ def get_textage_note_counts_and_bpm() -> Dict[str, List[Union[int, str]]]:
 
     return _check_textage_metadata_files(
         textage_javascript_file="datatbl.js",
-        parser_start_regex=r"^datatbl\s*=\s*{.*$",
+        parser_start_regex=r"^datatbl\s*=\s*({).*$",
         parser_end_regex=r"\s*}\s*;\s*",
         parser_callback=__read_nodes_and_bpm,
     )
@@ -341,9 +364,12 @@ if __name__ == "__main__":
     This is the proof of concept for what I provided the discord.
     """
     logging.basicConfig(level=logging.INFO)
+    get_textage_version_list()
     version_data = get_textage_version_data()
     song_titles = get_textage_song_titles()
     notes_and_bpm = get_textage_note_counts_and_bpm()
+    all_difficulties = _read_difficulty(version_data)
+    print(all_difficulties)
     songs = get_current_version_songs_not_in_infinitas(version_data, song_titles)
     inf_res_filename = "songs_in_res_not_in_inf.txt"
     log.info(f"WRITING SONGS to {inf_res_filename}")
