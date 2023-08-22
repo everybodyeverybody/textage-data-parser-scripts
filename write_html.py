@@ -22,19 +22,17 @@ def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
     table_block_end = f"</table></div>\n"
     header = """
         <tr>
-            <td>Title</td>
-            <td>Artist</td>
-            <td>Genre</td>
-            <td>Version</td>
-            <td>Alphabetical</td>
-            <td>SP Normal</td>
-            <td>SP Hyper</td>
-            <td>SP Another</td>
-            <td>SP Leggendaria</td>
-            <td>DP Normal</td>
-            <td>DP Hyper</td>
-            <td>DP Another</td>
-            <td>DP Leggendaria</td>
+            <td class='header'>Song</td>
+            <td class='header'>Version</td>
+            <td class='header'>Alpha</td>
+            <td class='header' title='Single Play Normal'>SPN</td>
+            <td class='header' title='Single Play Hyper'>SPH</td>
+            <td class='header' title='Single Play Another'>SPA</td>
+            <td class='header' title='Single Play Leggendaria'>SPL</td>
+            <td class='header' title='Double Play Normal'>DPN</td>
+            <td class='header' title='Double Play Hyper'>DPH</td>
+            <td class='header' title='Double Play Another'>DPA</td>
+            <td class='header' title='Double Play Leggendaria'>DPL</td>
         </tr>
     """
 
@@ -54,21 +52,24 @@ def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
             dp_legg = ""
         song_row = (
             "<tr>"
-            f"<td>{song.title}</td>"
-            f"<td>{song.artist}</td>"
-            f"<td>{song.genre}</td>"
-            f"<td>{song.version}</td>"
-            f"<td>{song.alphanumeric.name}</td>"
-            f"<td>{song.difficulty[Difficulty.SP_NORMAL]}</td>"
-            f"<td>{song.difficulty[Difficulty.SP_HYPER]}</td>"
-            f"<td>{sp_another}</td>"
-            f"<td>{sp_legg}</td>"
-            f"<td>{song.difficulty[Difficulty.DP_NORMAL]}</td>"
-            f"<td>{song.difficulty[Difficulty.DP_HYPER]}</td>"
-            f"<td>{dp_another}</td>"
-            f"<td>{dp_legg}</td>"
+            "<td class='song'>"
+            f"<div class='title'>{song.title}</div>"
+            f"<div class='genre'>{song.genre}</div>"
+            f"<div class='artist'>{song.artist}</div>"
+            "</td>"
+            f"<td class='version'>{song.version}</td>"
+            f"<td class='alphanumeric'>{song.alphanumeric.name}</td>"
+            f"<td class='spn'>{song.difficulty[Difficulty.SP_NORMAL]}</td>"
+            f"<td class='sph'>{song.difficulty[Difficulty.SP_HYPER]}</td>"
+            f"<td class='spa'>{sp_another}</td>"
+            f"<td class='spl'>{sp_legg}</td>"
+            f"<td class='dpn'>{song.difficulty[Difficulty.DP_NORMAL]}</td>"
+            f"<td class='dph'>{song.difficulty[Difficulty.DP_HYPER]}</td>"
+            f"<td class='dpa'>{dp_another}</td>"
+            f"<td class='dpl'>{dp_legg}</td>"
             "</tr>"
         )
+
         tags_list.append(song_row)
     row_tags = "\n".join(tags_list)
     return f"{table_block_start}\n{header}\n{row_tags}\n{table_block_end}\n"
@@ -117,7 +118,7 @@ def build_buttons(sorted_tables: List[Tuple[str, str]]) -> str:
         "<input id='sort_{table_id}' "
         "type='button' "
         "value='{table_label}' "
-        """onclick='showOneTable("{table_id}")'>"""
+        "onclick='showOneTable(\"{table_id}\")'>"
         "</input>"
     )
     for table_id in sorted_tables:
@@ -133,13 +134,37 @@ def write_html(sorted_tables: Dict[Tuple[str, str], str]):
     table_ids: List[Tuple[str, str]] = [table for table in sorted_tables.keys()]
     javascript = build_javascript(table_ids)
     buttons = build_buttons(table_ids)
+
+    css = (
+        "td { "
+        "    font-family: sans-serif; "
+        "    border: 1px solid #000000; "
+        "    text-align: center; "
+        "    padding: 0.2em;  "
+        "} "
+        "td.song { text-align: left; min-width: 30ch; }"
+        "div.title { font-size: 1.2em; font-weight: bold; }"
+        "div.genre { font-size: 0.6em; font-weight: bold; }"
+        "div.artist { font-size: 0.6em; font-style: italic;  }"
+        "td.version { min-width:12ch; font-weight: bold; font-size: 0.8em; }"
+        "td.alphanumeric { min-width:8ch; font-weight: bold; font-size: 0.8em; }"
+        "td.spn { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.sph { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.spa { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.spl { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.dpn { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.dph { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.dpa { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.dpl { min-width:4ch; font-weight: bold;  font-size: 1.4em; }"
+        "td.header { background-color: #484848; font-weight: bold; color: #ffffff; }"
+    )
     # TODO: learn about mobile css
     html_template = (
         "<!DOCTYPE html>"
         "<html>"
         "<title>Songs in IIDX Resident Not in Infinitas</title>"
         "<head><style>\n"
-        "td {{ font-size: 14pt; font-family: sans-serif; line-height: 18pt; border: 1px solid #000000; padding: 2px; text-align: center; }} "
+        "{css}"
         "\n"
         "</style></head>\n"
         "<body>\n"
@@ -153,7 +178,7 @@ def write_html(sorted_tables: Dict[Tuple[str, str], str]):
     )
     tables = "\n".join([table for table in sorted_tables.values()])
     html = html_template.format(
-        utc_now=utc_now, javascript=javascript, buttons=buttons, tables=tables
+        utc_now=utc_now, css=css, javascript=javascript, buttons=buttons, tables=tables
     )
     with open("index.html", "wt") as html_writer:
         html_writer.write(html)
@@ -163,7 +188,7 @@ def generate_all_sorted_tables(songs: List[SongMetadata]) -> Dict[Tuple[str, str
     tables_and_sort_methods: Dict[Tuple[str, str], Callable] = {
         (
             "alphanumeric",
-            "By Title/Alphanumeric",
+            "By Title",
         ): SongMetadata.sort_by_alphanumeric,
         (
             "version",
