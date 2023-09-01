@@ -172,8 +172,8 @@ def write_html(sorted_tables: Dict[Tuple[str, str], str]):
         div.title { font-size: 0.8em; font-weight: bold; }
         div.genre { font-size: 0.4em; font-weight: bold; }
         div.artist { font-size: 0.4em; font-style: italic;  }
-        td.version { min-width:12ch; font-weight: bold; font-size: 0.5em; }
-        td.alphanumeric { min-width:8ch; font-weight: bold; font-size: 0.5em; }
+        td.version { min-width:11ch; font-weight: bold; font-size: 0.4em; }
+        td.alphanumeric { min-width:7ch; font-weight: bold; font-size: 0.4em; }
         td.spn { background: #66FFFF; min-width:2ch; font-weight: bold;  font-size: 0.6em; }
         td.sph { background: #FFFF45; min-width:2ch; font-weight: bold;  font-size: 0.6em; }
         td.spa { background: #F89B86; min-width:2ch; font-weight: bold;  font-size: 0.6em; }
