@@ -99,12 +99,14 @@ def generate_song_metadata_difficulties_and_note_counts(
 
 @dataclass
 class SongMetadata:
+    # TODO: have this self serialize out to json
     textage_id: str
     title: str
     artist: str
     genre: str
     version_id: int
     alphanumeric: Alphanumeric
+    # TODO: have this split up by type
     difficulty_and_notes: Dict[Difficulty, Tuple[int, int]] = field(
         default_factory=generate_song_metadata_difficulties_and_note_counts
     )
@@ -112,6 +114,29 @@ class SongMetadata:
     version: str = ""
     min_bpm: int = 0
     max_bpm: int = 0
+
+    def to_dict(self) -> dict:
+        return {
+            "textage_id": self.textage_id,
+            "title": self.title,
+            "artist": self.artist,
+            "genre": self.genre,
+            "version_id": self.version_id,
+            "version": self.version,
+            "alphanumeric": self.alphanumeric.name,
+            "soflan": self.soflan,
+            "min_bpm": self.min_bpm,
+            "max_bpm": self.max_bpm,
+            "difficulty_and_notes": {
+                difficulty.name: {
+                    "level": self.difficulty_and_notes[difficulty][0],
+                    "notes": self.difficulty_and_notes[difficulty][1],
+                }
+                for difficulty in self.difficulty_and_notes.keys()
+                if self.difficulty_and_notes[difficulty][0] != 0
+                and self.difficulty_and_notes[difficulty][1] != 0
+            },
+        }
 
     def sort_by_alphanumeric(self) -> str:
         """

@@ -23,20 +23,30 @@ pip3 install -r requirements.txt
 Then run
 
 ```
-python3 list_current_ac_version_songs_not_in_infinitas.py
+python3 write_html.py
 ```
 
 ## Specific Script Notes
 
-### list_current_ac_version_songs_not_in_infinitas
+### download_textage_tables.py
+
+This contains all the logic for downloading and parsing
+the Javascript code on [textage.cc](https://textage.cc/score/)
+and converting it to JSON. 
+
+If run, this prints a dict of SongMetadata objects by textage javascript id, formatted
+as dictionaries.
+
+## write_html.py
 
 This gets the list of songs that are in IIDX 30 RESIDENT and the list
 of songs that are in INFINITAS from [textage.cc](https://textage.cc/score/)
-'s javascript backend and writes a text list.
+'s javascript backend and writes an HTML list, which I then manually publish
+to [https://everybodyeverybody.github.io](https://everybodyeverybody.github.io)
 
 This caches the data to try and not make too many requests to their
 page (should really be on a 6hr timer) and stores the js data locally
-in `.textage-metadata`.
+in `.textage-metadata` if you want to use it.
 
 ## Contribution Guidelines
 

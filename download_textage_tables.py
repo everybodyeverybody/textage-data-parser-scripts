@@ -410,6 +410,56 @@ def get_current_version_song_metadata_not_in_infinitas() -> Dict[str, SongMetada
             version=version_list[version_id],
             difficulty_and_notes=difficulty_and_notes,
             alphanumeric=check_alphanumeric_folder(title[0]),
+            soflan=all_bpms[textage_id][0],
+            min_bpm=all_bpms[textage_id][1],
+            max_bpm=all_bpms[textage_id][2],
         )
         not_in_inf_song_metadata[textage_id] = song_metadata
     return not_in_inf_song_metadata
+
+
+def get_all_song_metadata() -> Dict[str, SongMetadata]:
+    all_song_metadata: Dict[str, SongMetadata] = {}
+    version_data = get_textage_version_data()
+    song_titles = get_textage_song_titles()
+    all_bpms, all_note_counts = read_notes_and_bpm()
+    all_difficulties = _read_difficulty(version_data)
+    version_list = get_textage_version_list()
+    song_titles_by_textage_id = {}
+    for tag, title_version_metadata in song_titles.items():
+        if tag not in version_data:
+            log.warning(f"could not find {tag}:{title_version_metadata}")
+            continue
+        # scrlist.js line 682
+        song_titles_by_textage_id[tag] = title_version_metadata
+
+    for textage_id in version_data.keys():
+        version_id = song_titles_by_textage_id[textage_id][0]
+        title = " ".join(song_titles[textage_id][5:])
+        difficulty_and_notes: Dict[Difficulty, Tuple[int, int]] = {}
+        difficulty: Dict[Difficulty, int] = all_difficulties[textage_id]
+        notes: Dict[Difficulty, int] = all_note_counts[textage_id]
+        difficulty_and_notes = {
+            difficulty_id: (difficulty[difficulty_id], notes[difficulty_id])
+            for difficulty_id in difficulty.keys()
+        }
+        song_metadata = SongMetadata(
+            textage_id=textage_id,
+            title=title,
+            artist=song_titles[textage_id][4],
+            genre=song_titles[textage_id][3],
+            version_id=version_id,
+            version=version_list[version_id],
+            difficulty_and_notes=difficulty_and_notes,
+            alphanumeric=check_alphanumeric_folder(title[0]),
+            soflan=all_bpms[textage_id][0],
+            min_bpm=all_bpms[textage_id][1],
+            max_bpm=all_bpms[textage_id][2],
+        )
+        all_song_metadata[textage_id] = song_metadata
+    return all_song_metadata
+
+
+if __name__ == "__main__":
+    for key, value in get_all_song_metadata().items():
+        print(value.to_dict())
