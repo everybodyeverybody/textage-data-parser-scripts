@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Callable, Tuple
-from local_dataclasses import SongMetadata, Difficulty, Alphanumeric
+from local_dataclasses import SongMetadata, Difficulty
 
-from list_current_ac_version_songs_not_in_infinitas import (
+from download_textage_tables import (
     get_current_version_song_metadata_not_in_infinitas as get_em,
 )
 
@@ -42,10 +43,10 @@ def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
 
     tags_list = []
     for song in songs:
-        sp_another = f"{song.difficulty[Difficulty.SP_ANOTHER]}"
-        sp_legg = f"{song.difficulty[Difficulty.SP_LEGGENDARIA]}"
-        dp_another = f"{song.difficulty[Difficulty.DP_ANOTHER]}"
-        dp_legg = f"{song.difficulty[Difficulty.DP_LEGGENDARIA]}"
+        sp_another = f"{song.difficulty_and_notes[Difficulty.SP_ANOTHER][0]}"
+        sp_legg = f"{song.difficulty_and_notes[Difficulty.SP_LEGGENDARIA][0]}"
+        dp_another = f"{song.difficulty_and_notes[Difficulty.DP_ANOTHER][0]}"
+        dp_legg = f"{song.difficulty_and_notes[Difficulty.DP_LEGGENDARIA][0]}"
         if sp_another == "0":
             sp_another = ""
         if sp_legg == "0":
@@ -63,12 +64,12 @@ def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
             "</td>"
             f"<td class='version'>{song.version}</td>"
             f"<td class='alphanumeric'>{song.alphanumeric.name}</td>"
-            f"<td class='spn'>{song.difficulty[Difficulty.SP_NORMAL]}</td>"
-            f"<td class='sph'>{song.difficulty[Difficulty.SP_HYPER]}</td>"
+            f"<td class='spn'>{song.difficulty_and_notes[Difficulty.SP_NORMAL][0]}</td>"
+            f"<td class='sph'>{song.difficulty_and_notes[Difficulty.SP_HYPER][0]}</td>"
             f"<td class='spa'>{sp_another}</td>"
             f"<td class='spl'>{sp_legg}</td>"
-            f"<td class='dpn'>{song.difficulty[Difficulty.DP_NORMAL]}</td>"
-            f"<td class='dph'>{song.difficulty[Difficulty.DP_HYPER]}</td>"
+            f"<td class='dpn'>{song.difficulty_and_notes[Difficulty.DP_NORMAL][0]}</td>"
+            f"<td class='dph'>{song.difficulty_and_notes[Difficulty.DP_HYPER][0]}</td>"
             f"<td class='dpa'>{dp_another}</td>"
             f"<td class='dpl'>{dp_legg}</td>"
             "</tr>"
@@ -221,7 +222,7 @@ def write_html(sorted_tables: Dict[Tuple[str, str], str]):
         "\n"
         "</style></head>\n"
         "<body>\n"
-        "<h2>Songs in IIDX Epolis Not in Infinitas</h2>"
+        "<h3>Songs in IIDX Epolis Not in Infinitas</h3>"
         "{javascript}"
         "<div class='update'>Generated from <a href='https://textage.cc/score/'>Textage</a> by <a href='https://github.com/everybodyeverybody/textage-data-parser-scripts'>textage-data-parser-scripts</a></div>\n"
         "<div class='update'>Last Update: <b>{utc_now}</b></div>\n"

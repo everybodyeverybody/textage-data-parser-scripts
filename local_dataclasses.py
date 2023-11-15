@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import logging
 from enum import Enum
 from dataclasses import dataclass, field
@@ -68,25 +67,33 @@ class Alphanumeric(Enum):
     OTHERS = 6
 
 
-def generate_song_metadata_difficulties(
-    sp_normal=0,
-    sp_hyper=0,
-    sp_another=0,
-    sp_leggendaria=0,
-    dp_normal=0,
-    dp_hyper=0,
-    dp_another=0,
-    dp_leggendaria=0,
-) -> Dict[Difficulty, int]:
+def generate_song_metadata_difficulties_and_note_counts(
+    sp_normal: int = 0,
+    sp_normal_notes: int = 0,
+    sp_hyper: int = 0,
+    sp_hyper_notes: int = 0,
+    sp_another: int = 0,
+    sp_another_notes: int = 0,
+    sp_leggendaria: int = 0,
+    sp_leggendaria_notes: int = 0,
+    dp_normal: int = 0,
+    dp_normal_notes: int = 0,
+    dp_hyper: int = 0,
+    dp_hyper_notes: int = 0,
+    dp_another: int = 0,
+    dp_another_notes: int = 0,
+    dp_leggendaria: int = 0,
+    dp_leggendaria_notes: int = 0,
+) -> Dict[Difficulty, Tuple[int, int]]:
     return {
-        Difficulty.SP_NORMAL: sp_normal,
-        Difficulty.SP_HYPER: sp_hyper,
-        Difficulty.SP_ANOTHER: sp_another,
-        Difficulty.SP_LEGGENDARIA: sp_leggendaria,
-        Difficulty.DP_NORMAL: dp_normal,
-        Difficulty.DP_HYPER: dp_hyper,
-        Difficulty.DP_ANOTHER: dp_another,
-        Difficulty.DP_LEGGENDARIA: dp_leggendaria,
+        Difficulty.SP_NORMAL: (sp_normal, sp_normal_notes),
+        Difficulty.SP_HYPER: (sp_hyper, sp_hyper_notes),
+        Difficulty.SP_ANOTHER: (sp_another, sp_another_notes),
+        Difficulty.SP_LEGGENDARIA: (sp_leggendaria, sp_leggendaria_notes),
+        Difficulty.DP_NORMAL: (dp_normal, dp_normal_notes),
+        Difficulty.DP_HYPER: (dp_hyper, dp_hyper_notes),
+        Difficulty.DP_ANOTHER: (dp_another, dp_another_notes),
+        Difficulty.DP_LEGGENDARIA: (dp_leggendaria, dp_leggendaria_notes),
     }
 
 
@@ -97,11 +104,14 @@ class SongMetadata:
     artist: str
     genre: str
     version_id: int
-    version: str
     alphanumeric: Alphanumeric
-    difficulty: Dict[Difficulty, int] = field(
-        default_factory=generate_song_metadata_difficulties
+    difficulty_and_notes: Dict[Difficulty, Tuple[int, int]] = field(
+        default_factory=generate_song_metadata_difficulties_and_note_counts
     )
+    soflan: bool = False
+    version: str = ""
+    min_bpm: int = 0
+    max_bpm: int = 0
 
     def sort_by_alphanumeric(self) -> str:
         """
@@ -139,35 +149,51 @@ class SongMetadata:
         return f"{difficulty_level:02d}"
 
     def sort_by_spn(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.SP_NORMAL])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.SP_NORMAL][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_sph(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.SP_HYPER])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.SP_HYPER][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_spa(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.SP_ANOTHER])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.SP_ANOTHER][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_spl(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.SP_LEGGENDARIA])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.SP_LEGGENDARIA][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_dpn(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.DP_NORMAL])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.DP_NORMAL][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_dph(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.DP_HYPER])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.DP_HYPER][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_dpa(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.DP_ANOTHER])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.DP_ANOTHER][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
     def sort_by_dpl(self) -> str:
-        rate = self.__check_difficulty_rate(self.difficulty[Difficulty.DP_LEGGENDARIA])
+        rate = self.__check_difficulty_rate(
+            self.difficulty_and_notes[Difficulty.DP_LEGGENDARIA][0]
+        )
         return f"{rate} " + self.sort_by_alphanumeric()
 
 
@@ -181,9 +207,26 @@ class OCRSongTitles:
 
 @dataclass
 class SongReference:
+    # TODO: update this to lookup shit by bpm, or maybe run queries instead?
     by_artist: Dict[str, Set[str]] = field(default_factory=dict)
     by_difficulty: Dict[Tuple[str, int], Set[str]] = field(default_factory=dict)
     by_title: Dict[str, str] = field(default_factory=dict)
+    by_bpm: Dict[Tuple[int, int], Set[str]] = field(default_factory=dict)
+    by_note_count: Dict[int, Set[str]] = field(default_factory=dict)
+
+    def resolve_by_play_metadata(
+        self,
+        difficulty_tuple: Tuple[str, int],
+        bpm_tuple: Tuple[int, int],
+        note_count: int,
+    ):
+        # TODO: implement
+        difficulty_set = self.by_difficulty[difficulty_tuple]
+        bpm_set = self.by_bpm[bpm_tuple]
+        notes_set = self.by_note_count[note_count]
+        found_results = difficulty_set.intersection(bpm_set).intersection(notes_set)
+        log.info(f"PLAY METADATA SET: {found_results}")
+        return found_results
 
     def _resolve_artist_ocr(
         self, song_title: OCRSongTitles, found_difficulty_textage_ids: Set[str]
