@@ -9,6 +9,24 @@ from download_textage_tables import (
 )
 
 
+def check_optional_difficulties(
+    song: SongMetadata,
+) -> Dict[str, str]:
+    optional_difficulties: Dict[Difficulty, str] = {}
+    for difficulty in Difficulty:
+        if difficulty == Difficulty.UNKNOWN:
+            continue
+        optional_difficulties[difficulty] = ""
+        if (
+            difficulty in song.difficulty_metadata
+            and song.difficulty_metadata[difficulty].level != 0
+        ):
+            optional_difficulties[difficulty] = str(
+                song.difficulty_metadata[difficulty].level
+            )
+    return optional_difficulties
+
+
 def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
     display = "none"
     # TODO: pass this in as a flag or something
@@ -43,18 +61,7 @@ def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
 
     tags_list = []
     for song in songs:
-        sp_another = f"{song.difficulty_and_notes[Difficulty.SP_ANOTHER][0]}"
-        sp_legg = f"{song.difficulty_and_notes[Difficulty.SP_LEGGENDARIA][0]}"
-        dp_another = f"{song.difficulty_and_notes[Difficulty.DP_ANOTHER][0]}"
-        dp_legg = f"{song.difficulty_and_notes[Difficulty.DP_LEGGENDARIA][0]}"
-        if sp_another == "0":
-            sp_another = ""
-        if sp_legg == "0":
-            sp_legg = ""
-        if dp_another == "0":
-            dp_another = ""
-        if dp_legg == "0":
-            dp_legg = ""
+        difficulties = check_optional_difficulties(song)
         song_row = (
             "<tr>"
             "<td class='song'>"
@@ -64,14 +71,14 @@ def build_table(table_id: Tuple[str, str], songs: List[SongMetadata]) -> str:
             "</td>"
             f"<td class='version'>{song.version}</td>"
             f"<td class='alphanumeric'>{song.alphanumeric.name}</td>"
-            f"<td class='spn'>{song.difficulty_and_notes[Difficulty.SP_NORMAL][0]}</td>"
-            f"<td class='sph'>{song.difficulty_and_notes[Difficulty.SP_HYPER][0]}</td>"
-            f"<td class='spa'>{sp_another}</td>"
-            f"<td class='spl'>{sp_legg}</td>"
-            f"<td class='dpn'>{song.difficulty_and_notes[Difficulty.DP_NORMAL][0]}</td>"
-            f"<td class='dph'>{song.difficulty_and_notes[Difficulty.DP_HYPER][0]}</td>"
-            f"<td class='dpa'>{dp_another}</td>"
-            f"<td class='dpl'>{dp_legg}</td>"
+            f"<td class='spn'>{difficulties[Difficulty.SP_NORMAL]}</td>"
+            f"<td class='sph'>{difficulties[Difficulty.SP_HYPER]}</td>"
+            f"<td class='spa'>{difficulties[Difficulty.SP_ANOTHER]}</td>"
+            f"<td class='spl'>{difficulties[Difficulty.SP_LEGGENDARIA]}</td>"
+            f"<td class='dpn'>{difficulties[Difficulty.DP_NORMAL]}</td>"
+            f"<td class='dph'>{difficulties[Difficulty.DP_HYPER]}</td>"
+            f"<td class='dpa'>{difficulties[Difficulty.DP_ANOTHER]}</td>"
+            f"<td class='dpl'>{difficulties[Difficulty.DP_LEGGENDARIA]}</td>"
             "</tr>"
         )
 
